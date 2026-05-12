@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}Notificaciones - Gestión PRL{% endblock %}
+{% block page_title %}<i class="bi bi-bell me-2"></i> Historial de Notificaciones{% endblock %}
+
+{% block content %}
+<!-- Acciones de envío -->
+<div class="row g-3 mb-4">
+    <!-- Enviar email de prueba -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-envelope-check me-2"></i> Enviar Email de Prueba
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('notifications.send_test') }}">
+                    <div class="mb-2">
+                        <input type="email" class="form-control form-control-sm" name="email"
+                               placeholder="Email destino..." required
+                               value="{{ empleados[0].email if empleados and empleados[0].email else '' }}">
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-send me-1"></i> Enviar prueba
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Enviar notificación manual -->
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-envelope-paper me-2"></i> Enviar Notificación Manual
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('notifications.send_manual') }}">
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm" name="employee_id" id="manual_emp" required>
+                            <option value="">Seleccionar empleado...</option>
+                            {% for emp in empleados %}
+                            {% if emp.email %}
+                            <option value="{{ emp.id }}">{{ emp.nombre_completo }} ({{ emp.email }})</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning btn-sm flex-grow-1">
+                            <i class="bi bi-send me-1"></i> Enviar alerta de todos sus docs
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Ejecutar revisión automática -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-arrow-repeat me-2"></i> Revisión Automática
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between">
+                <p class="small text-muted mb-2">Ejecuta ahora la revisión de documentos por vencer/caducados y envía las alertas correspondientes.</p>
+                <form method="POST" action="{{ url_for('notifications.run_check') }}">
+                    <button type="submit" class="btn btn-success btn-sm w-100"
+                            onclick="return confirm('¿Ejecutar la revisión y enviar alertas ahora?')">
+                        <i class="bi bi-play-fill me-1"></i> Ejecutar ahora
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-gear me-2"></i> Configuracion de alertas
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('notifications.update_settings') }}" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Dias de aviso (separados por coma)</label>
+                <input type="text" class="form-control" name="alert_days"
+                       value="{{ alert_days|join(',') }}" placeholder="30,15,7,1">
+                <div class="form-text">Ejemplo: 30,15,7,1</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Intervalo de revision (horas)</label>
+                <input type="number" class="form-control" name="alert_interval_hours"
+                       min="1" max="168" value="{{ alert_interval_hours }}">
+                <div class="form-text">Entre 1 y 168 horas</div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-save me-1"></i> Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Acciones de envío masivo -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-people me-2"></i> Envio masivo
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('notifications.send_manual') }}" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Departamento</label>
+                <select class="form-select" name="departamento">
+                    <option value="">Todos</option>
+                    {% for depto in departamentos %}
+                    <option value="{{ depto }}">{{ depto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tipo de documento</label>
+                <select class="form-select" name="document_type_id">
+                    <option value="">Todos</option>
+                    {% for tipo in tipos_doc %}
+                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="caducado">Caducado</option>
+                    <option value="por_vencer">Por vencer</option>
+                    <option value="vigente">Vigente</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-send me-1"></i> Enviar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="POST" class="row g-3">
+            <div class="col-md-3">
+                <select class="form-select" name="exitoso">
+                    <option value="">Todas las notificaciones</option>
+                    <option value="1" {% if exitoso == '1' %}selected{% endif %}>Enviadas correctamente</option>
+                    <option value="0" {% if exitoso == '0' %}selected{% endif %}>Con errores</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="tipo_alerta">
+                    <option value="">Todos los tipos</option>
+                    <option value="30_dias" {% if tipo_alerta == '30_dias' %}selected{% endif %}>30 dias</option>
+                    <option value="15_dias" {% if tipo_alerta == '15_dias' %}selected{% endif %}>15 dias</option>
+                    <option value="7_dias" {% if tipo_alerta == '7_dias' %}selected{% endif %}>7 dias</option>
+                    <option value="1_dias" {% if tipo_alerta == '1_dias' %}selected{% endif %}>1 dia</option>
+                    <option value="manual" {% if tipo_alerta == 'manual' %}selected{% endif %}>Manual</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="email_destino" placeholder="Buscar por email"
+                       value="{{ email_destino or '' }}">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="employee_id">
+                    <option value="">Todos los empleados</option>
+                    {% for emp in empleados %}
+                    <option value="{{ emp.id }}" {% if employee_id == emp.id|string %}selected{% endif %}>
+                        {{ emp.nombre_completo }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary" name="action" value="filter">
+                    <i class="bi bi-funnel me-1"></i> Filtrar
+                </button>
+                <button type="submit" class="btn btn-outline-secondary" name="action" value="clear">
+                    <i class="bi bi-x-lg"></i> Limpiar
+                </button>
+            </div>
+        </form>
+        <div class="d-flex justify-content-end mt-2">
+            <form method="POST" action="{{ url_for('notifications.clear_history') }}">
+                <button type="submit" class="btn btn-outline-danger"
+                        onclick="return confirm('¿Vaciar el historial de notificaciones?')">
+                    <i class="bi bi-trash me-1"></i> Vaciar historial
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Empleado</th>
+                        <th>Documento</th>
+                        <th>Tipo Alerta</th>
+                        <th>Email Destino</th>
+                        <th>Estado</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notif in notifications %}
+                    <tr>
+                        <td>{{ notif.enviado_en|fecha_hora }}</td>
+                        <td>
+                            {% if notif.employee %}
+                            <a href="{{ url_for('employees.detail', id=notif.employee_id) }}" class="text-decoration-none">
+                                {{ notif.employee.nombre_completo }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if notif.document %}
+                            <a href="{{ url_for('documents.detail', id=notif.document_id) }}" class="text-decoration-none">
+                                {{ notif.document.titulo }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Documento eliminado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if '1_dia' in notif.tipo_alerta %}
+                            <span class="badge bg-danger">1 día</span>
+                            {% elif '7_dia' in notif.tipo_alerta %}
+                            <span class="badge bg-danger">7 días</span>
+                            {% elif '15_dia' in notif.tipo_alerta %}
+                            <span class="badge bg-warning text-dark">15 días</span>
+                            {% elif '30_dia' in notif.tipo_alerta %}
+                            <span class="badge bg-info">30 días</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ notif.tipo_alerta }}</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ notif.email_destino }}</small></td>
+                        <td>
+                            {% if notif.exitoso %}
+                            <span class="badge bg-success"><i class="bi bi-check"></i> Enviado</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x"></i> Error</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if notif.mensaje_error %}
+                            <small class="text-danger" title="{{ notif.mensaje_error }}">
+                                {{ notif.mensaje_error[:50] }}{{ '...' if notif.mensaje_error|length > 50 else '' }}
+                            </small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-bell-slash" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No se han enviado notificaciones aún.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('notifications.history', page=pagination.prev_num) }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('notifications.history', page=p) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('notifications.history', page=pagination.next_num) }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

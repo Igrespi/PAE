@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Informes - Gestión PRL{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-bar-graph me-2"></i> Generación de Informes{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-funnel me-2"></i> Configurar Informe
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('reports.generar') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="formato" class="form-label">Formato de exportación</label>
+                            <select class="form-select" id="formato" name="formato">
+                                <option value="csv">📊 CSV (Excel)</option>
+                                <option value="pdf">📄 PDF</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="estado" class="form-label">Estado de documentos</label>
+                            <select class="form-select" id="estado" name="estado">
+                                <option value="">Todos los estados</option>
+                                <option value="vigente">✅ Vigentes</option>
+                                <option value="por_vencer">⚠️ Por vencer (30 días)</option>
+                                <option value="caducado">❌ Caducados</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tipo_id" class="form-label">Tipo de documento</label>
+                            <select class="form-select" id="tipo_id" name="tipo_id">
+                                <option value="">Todos los tipos</option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="departamento" class="form-label">Departamento</label>
+                            <select class="form-select" id="departamento" name="departamento">
+                                <option value="">Todos los departamentos</option>
+                                {% for depto in departamentos %}
+                                <option value="{{ depto }}">{{ depto }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-download me-2"></i> Generar y Descargar Informe
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informes rápidos -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-lightning me-2"></i> Informes Rápidos
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <form method="POST" action="{{ url_for('reports.generar') }}">
+                            <input type="hidden" name="formato" value="pdf">
+                            <input type="hidden" name="estado" value="caducado">
+                            <button type="submit" class="btn btn-outline-danger w-100 py-3">
+                                <i class="bi bi-x-circle d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Documentos Caducados
+                                <small class="d-block text-muted">PDF</small>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <form method="POST" action="{{ url_for('reports.generar') }}">
+                            <input type="hidden" name="formato" value="pdf">
+                            <input type="hidden" name="estado" value="por_vencer">
+                            <button type="submit" class="btn btn-outline-warning w-100 py-3">
+                                <i class="bi bi-exclamation-triangle d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Por Vencer (30d)
+                                <small class="d-block text-muted">PDF</small>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <form method="POST" action="{{ url_for('reports.generar') }}">
+                            <input type="hidden" name="formato" value="csv">
+                            <input type="hidden" name="estado" value="">
+                            <button type="submit" class="btn btn-outline-primary w-100 py-3">
+                                <i class="bi bi-table d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Todos los Documentos
+                                <small class="d-block text-muted">CSV/Excel</small>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

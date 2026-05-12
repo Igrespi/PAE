@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.nombre_completo }} - Gestión PRL{% endblock %}
+{% block page_title %}
+    <i class="bi bi-person me-2"></i> {{ employee.nombre_completo }}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Info del Empleado -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1a237e, #0d47a1); color: white; font-size: 28px; display: inline-flex; align-items: center; justify-content: center;">
+                        {{ employee.nombre[0] }}{{ employee.apellidos[0] }}
+                    </div>
+                </div>
+                <h5>{{ employee.nombre_completo }}</h5>
+                {% if employee.activo %}
+                <span class="badge bg-success">Activo</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactivo</span>
+                {% endif %}
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">DNI</span>
+                    <strong>{{ employee.dni }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Email</span>
+                    <span>{{ employee.email or '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Teléfono</span>
+                    <span>{{ employee.telefono or '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Puesto</span>
+                    <span>{{ employee.puesto or '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Departamento</span>
+                    <span>{{ employee.departamento or '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Fecha Alta</span>
+                    <span>{{ employee.fecha_alta|fecha if employee.fecha_alta else '-' }}</span>
+                </li>
+            </ul>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('employees.edit', id=employee.id) }}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-2"></i> Editar
+                    </a>
+                    <a href="{{ url_for('file_manager.upload_doc', employee_id=employee.id) }}" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload me-2"></i> Subir Documento
+                    </a>
+                    <form method="POST" action="{{ url_for('employees.delete', id=employee.id) }}"
+                          onsubmit="return confirm('¿Estás seguro de eliminar este empleado y todos sus documentos?')">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-2"></i> Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentos del Empleado -->
+    <div class="col-lg-8">
+        <!-- Resumen rápido de documentos -->
+        <div class="row g-3 mb-3">
+            <div class="col-4">
+                <div class="card border-0 bg-success bg-opacity-10">
+                    <div class="card-body text-center py-2">
+                        <h4 class="mb-0 text-success">{{ documentos|selectattr('estado', 'eq', 'vigente')|list|length }}</h4>
+                        <small class="text-muted">Vigentes</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 bg-warning bg-opacity-10">
+                    <div class="card-body text-center py-2">
+                        <h4 class="mb-0 text-warning">{{ documentos|selectattr('estado', 'eq', 'por_vencer')|list|length }}</h4>
+                        <small class="text-muted">Por vencer</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 bg-danger bg-opacity-10">
+                    <div class="card-body text-center py-2">
+                        <h4 class="mb-0 text-danger">{{ documentos|selectattr('estado', 'eq', 'caducado')|list|length }}</h4>
+                        <small class="text-muted">Caducados</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="todos-tab" data-bs-toggle="tab" data-bs-target="#todos" type="button" role="tab">
+                            <i class="bi bi-list-ul me-1"></i> Todos ({{ documentos|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="por-tipo-tab" data-bs-toggle="tab" data-bs-target="#por-tipo" type="button" role="tab">
+                            <i class="bi bi-collection me-1"></i> Por tipo ({{ docs_por_tipo|length }})
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body p-0">
+                <div class="tab-content">
+                    <!-- Pestaña: Todos los documentos -->
+                    <div class="tab-pane fade show active" id="todos" role="tabpanel">
+                        {% if documentos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Título</th>
+                                        <th>Tipo</th>
+                                        <th>Emisión</th>
+                                        <th>Caducidad</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documentos %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('file_manager.doc_detail', employee_id=employee.id, doc_id=doc.id) }}" class="text-decoration-none">
+                                                {{ doc.titulo }}
+                                            </a>
+                                            {% if doc.archivo_path %}
+                                            <i class="bi bi-paperclip text-muted" title="Tiene archivo adjunto"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td><small>{{ doc.document_type.nombre if doc.document_type else 'N/A' }}</small></td>
+                                        <td>{{ doc.fecha_emision|fecha }}</td>
+                                        <td>{{ doc.fecha_caducidad|fecha if doc.fecha_caducidad else 'Sin caducidad' }}</td>
+                                        <td>
+                                            {% set badge = doc.estado_badge %}
+                                            <span class="badge bg-{{ badge[1] }} badge-estado">{{ badge[0] }}</span>
+                                            {% if doc.dias_restantes is not none and doc.dias_restantes >= 0 %}
+                                            <small class="text-muted d-block">{{ doc.dias_restantes }}d</small>
+                                            {% elif doc.dias_restantes is not none and doc.dias_restantes < 0 %}
+                                            <small class="text-danger d-block">hace {{ doc.dias_restantes|abs }}d</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                {% if doc.archivo_path %}
+                                                <a href="{{ url_for('file_manager.doc_download', employee_id=employee.id, doc_id=doc.id) }}" class="btn btn-outline-success" title="Descargar">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                                {% endif %}
+                                                <a href="{{ url_for('file_manager.doc_edit', employee_id=employee.id, doc_id=doc.id) }}" class="btn btn-outline-warning" title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-folder2-open" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Este empleado no tiene documentos registrados.</p>
+                            <a href="{{ url_for('file_manager.upload_doc', employee_id=employee.id) }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-cloud-upload me-2"></i> Subir primer documento
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pestaña: Clasificados por tipo -->
+                    <div class="tab-pane fade" id="por-tipo" role="tabpanel">
+                        {% if docs_por_tipo %}
+                        <div class="accordion accordion-flush" id="accordionTipos">
+                            {% for tipo_id, tipo_data in docs_por_tipo.items() %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading-{{ tipo_id }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapse-{{ tipo_id }}">
+                                        <div class="d-flex align-items-center w-100 me-3">
+                                            <i class="bi bi-folder2 me-2 text-primary"></i>
+                                            <strong>{{ tipo_data.nombre }}</strong>
+                                            <span class="badge bg-secondary ms-2">{{ tipo_data.documentos|length }}</span>
+                                            {% if tipo_data.caducados > 0 %}
+                                            <span class="badge bg-danger ms-1" title="Caducados">{{ tipo_data.caducados }}</span>
+                                            {% endif %}
+                                            {% if tipo_data.por_vencer > 0 %}
+                                            <span class="badge bg-warning text-dark ms-1" title="Por vencer">{{ tipo_data.por_vencer }}</span>
+                                            {% endif %}
+                                            {% if tipo_data.vigentes > 0 %}
+                                            <span class="badge bg-success ms-1" title="Vigentes">{{ tipo_data.vigentes }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse-{{ tipo_id }}" class="accordion-collapse collapse"
+                                     data-bs-parent="#accordionTipos">
+                                    <div class="accordion-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Título</th>
+                                                        <th>Emisión</th>
+                                                        <th>Caducidad</th>
+                                                        <th>Estado</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for doc in tipo_data.documentos %}
+                                                    <tr>
+                                                        <td>
+                                                            <a href="{{ url_for('file_manager.doc_detail', employee_id=employee.id, doc_id=doc.id) }}" class="text-decoration-none">
+                                                                {{ doc.titulo }}
+                                                            </a>
+                                                            {% if doc.archivo_path %}
+                                                            <i class="bi bi-paperclip text-muted"></i>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>{{ doc.fecha_emision|fecha }}</td>
+                                                        <td>{{ doc.fecha_caducidad|fecha if doc.fecha_caducidad else 'Sin caducidad' }}</td>
+                                                        <td>
+                                                            {% set badge = doc.estado_badge %}
+                                                            <span class="badge bg-{{ badge[1] }}">{{ badge[0] }}</span>
+                                                            {% if doc.dias_restantes is not none and doc.dias_restantes >= 0 %}
+                                                            <small class="text-muted d-block">{{ doc.dias_restantes }}d</small>
+                                                            {% elif doc.dias_restantes is not none and doc.dias_restantes < 0 %}
+                                                            <small class="text-danger d-block">hace {{ doc.dias_restantes|abs }}d</small>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm">
+                                                                {% if doc.archivo_path %}
+                                                                <a href="{{ url_for('file_manager.doc_download', employee_id=employee.id, doc_id=doc.id) }}" class="btn btn-outline-success" title="Descargar">
+                                                                    <i class="bi bi-download"></i>
+                                                                </a>
+                                                                {% endif %}
+                                                                <a href="{{ url_for('file_manager.doc_edit', employee_id=employee.id, doc_id=doc.id) }}" class="btn btn-outline-warning" title="Editar">
+                                                                    <i class="bi bi-pencil"></i>
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-folder2-open" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Este empleado no tiene documentos registrados.</p>
+                            <a href="{{ url_for('file_manager.upload_doc', employee_id=employee.id) }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-cloud-upload me-2"></i> Subir primer documento
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('employees.list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i> Volver al listado
+    </a>
+</div>
+{% endblock %}
+

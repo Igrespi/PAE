@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if employee else 'Nuevo' }} Empleado - Gestión PRL{% endblock %}
+{% block page_title %}
+    <i class="bi bi-person-{{ 'gear' if employee else 'plus' }} me-2"></i>
+    {{ 'Editar Empleado' if employee else 'Nuevo Empleado' }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre" name="nombre"
+                                   value="{{ employee.nombre if employee else '' }}" required
+                                   minlength="2" maxlength="100" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]{2,100}"
+                                   oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]/g,'')">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="apellidos" class="form-label">Apellidos <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="apellidos" name="apellidos"
+                                   value="{{ employee.apellidos if employee else '' }}" required
+                                   minlength="2" maxlength="150" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]{2,150}"
+                                   oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]/g,'')">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dni" class="form-label">DNI/NIE <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="dni" name="dni"
+                                   value="{{ employee.dni if employee else '' }}" required
+                                   minlength="5" maxlength="20" pattern="[A-Za-z0-9]{5,20}"
+                                   oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'')">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ employee.email if employee else '' }}" maxlength="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono"
+                                   value="{{ employee.telefono if employee else '' }}" inputmode="numeric"
+                                   minlength="9" maxlength="15" pattern="\d{9,15}"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="puesto" class="form-label">Puesto</label>
+                            <input type="text" class="form-control" id="puesto" name="puesto"
+                                   value="{{ employee.puesto if employee else '' }}" maxlength="100"
+                                   pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]{0,100}"
+                                   oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]/g,'')">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="departamento" class="form-label">Departamento</label>
+                            <input type="text" class="form-control" id="departamento" name="departamento"
+                                   value="{{ employee.departamento if employee else '' }}" maxlength="100"
+                                   pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]{0,100}"
+                                   oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]/g,'')">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fecha_alta" class="form-label">Fecha de Alta</label>
+                            <input type="date" class="form-control" id="fecha_alta" name="fecha_alta"
+                                   value="{{ employee.fecha_alta.isoformat() if employee and employee.fecha_alta else '' }}">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="activo" name="activo"
+                                       {% if not employee or employee.activo %}checked{% endif %}>
+                                <label class="form-check-label" for="activo">Empleado activo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('employees.list') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>
+                            {{ 'Actualizar' if employee else 'Crear Empleado' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

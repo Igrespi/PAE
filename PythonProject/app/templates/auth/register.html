@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Gestión PRL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #1a237e, #0d47a1); border: none; padding: 12px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h3 class="text-center"><i class="bi bi-person-plus-fill text-primary"></i> <br>Registro de Administrador</h3>
+        <p class="text-center text-muted mb-4">Crea tu cuenta con un correo valido. Te enviaremos un codigo de verificacion.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="username" class="form-label">Nombre de Usuario *</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ username|default('') }}" required autofocus
+                       minlength="3" maxlength="30" pattern="[A-Za-z0-9_.-]{3,30}" autocomplete="username"
+                       placeholder="Elige un usuario unico">
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo *</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ email|default('') }}" required
+                       maxlength="120" autocomplete="email" placeholder="tu@correo.com">
+            </div>
+            <div class="mb-3">
+                <label for="telefono" class="form-label">Telefono *</label>
+                <input type="tel" class="form-control" id="telefono" name="telefono" value="{{ telefono|default('') }}" required
+                       inputmode="numeric" pattern="\d{9,15}" minlength="9" maxlength="15" autocomplete="tel"
+                       oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="600123123">
+            </div>
+            <div class="mb-3">
+                <label for="dni" class="form-label">DNI / NIE *</label>
+                <input type="text" class="form-control" id="dni" name="dni" value="{{ dni|default('') }}" required
+                       minlength="5" maxlength="20" pattern="[A-Za-z0-9]{5,20}" autocomplete="off"
+                       placeholder="Ej: 12345678A">
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Contrasena *</label>
+                <input type="password" class="form-control" id="password" name="password" required
+                       minlength="6" maxlength="128" autocomplete="new-password">
+            </div>
+            <div class="mb-4">
+                <label for="password2" class="form-label">Confirmar Contrasena *</label>
+                <input type="password" class="form-control" id="password2" name="password2" required
+                       minlength="6" maxlength="128" autocomplete="new-password">
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-envelope"></i> Enviar Codigo de Verificacion</button>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-box-arrow-in-left"></i> Volver a Iniciar Sesion
+                </a>
+            </div>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

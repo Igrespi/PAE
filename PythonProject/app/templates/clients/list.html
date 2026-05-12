@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Clientes - Gestion PRL{% endblock %}
+{% block page_title %}<i class="bi bi-building me-2"></i> Clientes{% endblock %}
+
+{% block content %}
+{% set ns = namespace(total_asignados=0) %}
+{% for client in clients %}
+    {% set ns.total_asignados = ns.total_asignados + client.employees.count() %}
+{% endfor %}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted">Clientes registrados</div>
+                    <div class="stat-number">{{ clients|length }}</div>
+                </div>
+                <div class="stat-icon bg-primary text-white">
+                    <i class="bi bi-building"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted">Empleados asignados</div>
+                    <div class="stat-number">{{ ns.total_asignados }}</div>
+                </div>
+                <div class="stat-icon bg-success text-white">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+    <div class="text-muted">Listado de clientes y asignaciones</div>
+    <a href="{{ url_for('clients.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i> Nuevo Cliente
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Contacto</th>
+                        <th>Asignacion</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ client.nombre }}</div>
+                            <div class="text-muted small">Creado: {{ client.created_at|fecha }}</div>
+                        </td>
+                        <td>
+                            <div><i class="bi bi-envelope me-1 text-muted"></i><small>{{ client.email or '-' }}</small></div>
+                            <div><i class="bi bi-telephone me-1 text-muted"></i><small>{{ client.telefono or '-' }}</small></div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">{{ client.employees.count() }}</span>
+                            <span class="text-muted small ms-2">empleados</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('clients.detail', id=client.id) }}" class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No hay clientes creados.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

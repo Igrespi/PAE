@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Documentos por Tipo - PRL{% endblock %}
+{% block page_title %}
+    <i class="bi bi-diagram-3 me-2"></i> Documentos por Tipo
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .type-card {
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+    .type-card:hover {
+        border-color: #0d47a1;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .type-card.active {
+        border-color: #0d47a1;
+        background-color: #e3f2fd;
+    }
+    .type-header {
+        cursor: pointer;
+    }
+    .type-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    .type-icon.has-docs { background: linear-gradient(135deg, #1565c0, #0d47a1); color: white; }
+    .type-icon.empty { background: #e0e0e0; color: #9e9e9e; }
+    .type-icon.has-issues { background: linear-gradient(135deg, #e65100, #bf360c); color: white; }
+    .mini-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; }
+    .breadcrumb-custom {
+        background: white;
+        border-radius: 10px;
+        padding: 12px 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-custom mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('file_manager.index') }}" class="text-decoration-none">
+                    <i class="bi bi-folder2-open me-1"></i> Gestión Documental
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Por tipo de documento</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Vista global por tipos -->
+{% for data in tipos_data %}
+<div class="card type-card mb-3" id="type-card-{{ data.tipo.id }}">
+    <div class="card-header bg-white py-3 type-header" onclick="toggleType({{ data.tipo.id }})">
+        <div class="d-flex align-items-center">
+            <div class="type-icon {{ 'has-issues' if data.caducados > 0 else ('has-docs' if data.total > 0 else 'empty') }} me-3">
+                <i class="bi bi-folder-fill"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center">
+                    <h6 class="mb-0">{{ data.tipo.nombre }}</h6>
+                    {% if data.tipo.obligatorio %}
+                    <span class="badge bg-danger ms-2" style="font-size: 0.65rem;">Obligatorio</span>
+                    {% endif %}
+                    <span class="badge bg-secondary ms-2">{{ data.total }} doc{{ 's' if data.total != 1 else '' }}</span>
+                    <span class="text-muted ms-2 small">{{ data.empleados|length }} empleado{{ 's' if data.empleados|length != 1 else '' }}</span>
+                </div>
+                {% if data.tipo.descripcion %}
+                <small class="text-muted">{{ data.tipo.descripcion }}</small>
+                {% endif %}
+                {% if data.tipo.validez_meses %}
+                <small class="text-muted ms-2"><i class="bi bi-clock me-1"></i>Validez: {{ data.tipo.validez_meses }} meses</small>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-1 me-3">
+                {% if data.vigentes > 0 %}
+                <span class="mini-badge bg-success bg-opacity-10 text-success">{{ data.vigentes }}</span>
+                {% endif %}
+                {% if data.por_vencer > 0 %}
+                <span class="mini-badge bg-warning bg-opacity-10 text-warning">{{ data.por_vencer }}</span>
+                {% endif %}
+                {% if data.caducados > 0 %}
+                <span class="mini-badge bg-danger bg-opacity-10 text-danger">{{ data.caducados }}</span>
+                {% endif %}
+            </div>
+            <i class="bi bi-chevron-down text-muted" id="chevron-type-{{ data.tipo.id }}"></i>
+        </div>
+    </div>
+    <div class="card-body p-0" id="content-type-{{ data.tipo.id }}" style="display: none;">
+        {% if data.total > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30px;"></th>
+                        <th>Empleado</th>
+                        <th>Título</th>
+                        <th>Emisión</th>
+                        <th>Caducidad</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in data.documentos %}
+                    <tr>
+                        <td class="text-center">
+                            {% if doc.archivo_path %}
+                            <i class="bi bi-file-earmark-fill text-primary"></i>
+                            {% else %}
+                            <i class="bi bi-file-earmark text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('file_manager.employee_docs', id=doc.employee.id) }}" class="text-decoration-none">
+                                <small>{{ doc.employee.nombre_completo }}</small>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('file_manager.doc_detail', employee_id=doc.employee.id, doc_id=doc.id) }}" class="text-decoration-none fw-medium">
+                                {{ doc.titulo }}
+                            </a>
+                        </td>
+                        <td><small>{{ doc.fecha_emision|fecha }}</small></td>
+                        <td><small>{{ doc.fecha_caducidad|fecha if doc.fecha_caducidad else 'Sin caducidad' }}</small></td>
+                        <td>
+                            {% set badge = doc.estado_badge %}
+                            <span class="badge bg-{{ badge[1] }}" style="font-size: 0.75rem;">{{ badge[0] }}</span>
+                            {% if doc.dias_restantes is not none and doc.dias_restantes >= 0 %}
+                            <small class="text-muted d-block">{{ doc.dias_restantes }}d</small>
+                            {% elif doc.dias_restantes is not none and doc.dias_restantes < 0 %}
+                            <small class="text-danger d-block">hace {{ doc.dias_restantes|abs }}d</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('file_manager.doc_detail', employee_id=doc.employee.id, doc_id=doc.id) }}" class="btn btn-outline-primary" title="Ver">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if doc.archivo_path %}
+                                <a href="{{ url_for('file_manager.doc_download', employee_id=doc.employee.id, doc_id=doc.id) }}" class="btn btn-outline-success" title="Descargar">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('file_manager.doc_edit', employee_id=doc.employee.id, doc_id=doc.id) }}" class="btn btn-outline-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-folder" style="font-size: 1.5rem;"></i>
+            <p class="mt-2 mb-0">No hay documentos de este tipo.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% if not tipos_data %}
+<div class="text-center py-5">
+    <i class="bi bi-tags" style="font-size: 3rem; color: #ccc;"></i>
+    <p class="text-muted mt-3">No hay tipos de documento definidos.</p>
+    <a href="{{ url_for('documents.list', vista='tipos') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Crear tipo de documento
+    </a>
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{{ url_for('file_manager.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i> Volver a Gestión Documental
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleType(tipoId) {
+        const content = document.getElementById('content-type-' + tipoId);
+        const chevron = document.getElementById('chevron-type-' + tipoId);
+        const card = document.getElementById('type-card-' + tipoId);
+
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            chevron.classList.remove('bi-chevron-down');
+            chevron.classList.add('bi-chevron-up');
+            card.classList.add('active');
+        } else {
+            content.style.display = 'none';
+            chevron.classList.remove('bi-chevron-up');
+            chevron.classList.add('bi-chevron-down');
+            card.classList.remove('active');
+        }
+    }
+</script>
+{% endblock %}
+

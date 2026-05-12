@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Mi Perfil - Gestión PRL{% endblock %}
+{% block page_title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-person-gear me-2"></i> Datos del Perfil
+                {% if current_user.is_admin %}
+                <span class="badge bg-danger float-end">Administrador</span>
+                {% else %}
+                <span class="badge bg-info float-end">Empleado</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre"
+                               value="{{ current_user.nombre or '' }}" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ current_user.email }}" maxlength="120">
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label">Telefono</label>
+                        <input type="tel" class="form-control" id="telefono" name="telefono"
+                               value="{{ current_user.telefono or '' }}" inputmode="numeric"
+                               pattern="\d{9,15}" minlength="9" maxlength="15"
+                               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+                    <div class="mb-3">
+                        <label for="dni" class="form-label">DNI / NIE</label>
+                        <input type="text" class="form-control" id="dni" name="dni"
+                               value="{{ current_user.dni or '' }}" minlength="5" maxlength="20"
+                               pattern="[A-Za-z0-9]{5,20}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username"
+                               value="{{ current_user.username }}" disabled>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Nueva Contrasena</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password"
+                               placeholder="Dejar vacio para no cambiar">
+                        <small class="form-text text-muted">Solo rellena si deseas cambiar la contrasena.</small>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if not current_user.is_admin and current_user.employee %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-badge me-2"></i> Mi Ficha de Empleado
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Nombre completo</span>
+                        <strong>{{ current_user.employee.nombre_completo }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">DNI</span>
+                        <span>{{ current_user.employee.dni }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Puesto</span>
+                        <span>{{ current_user.employee.puesto or '-' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Departamento</span>
+                        <span>{{ current_user.employee.departamento or '-' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Documentos</span>
+                        <span class="badge bg-primary rounded-pill">{{ current_user.employee.documents.count() }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

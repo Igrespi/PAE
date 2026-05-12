@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Cliente - Gestion PRL{% endblock %}
+{% block page_title %}<i class="bi bi-building me-2"></i> Nuevo Cliente{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">Alta de cliente</div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Nombre del cliente</label>
+                    <input type="text" class="form-control" name="nombre" value="{{ client.nombre if client else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Telefono</label>
+                    <input type="text" class="form-control" name="telefono" value="{{ client.telefono if client else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Correo</label>
+                    <input type="email" class="form-control" name="email" value="{{ client.email if client else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notas</label>
+                    <textarea class="form-control" name="notas" rows="4">{{ client.notas if client else '' }}</textarea>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> Guardar
+                </button>
+                <a href="{{ url_for('clients.list') }}" class="btn btn-outline-secondary" data-no-nav>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

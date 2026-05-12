@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{{ document.titulo }} - Gestión PRL{% endblock %}
+{% block page_title %}
+    <i class="bi bi-file-earmark-text me-2"></i> Detalle del Documento
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>{{ document.titulo }}</span>
+                {% set badge = document.estado_badge %}
+                <span class="badge bg-{{ badge[1] }} badge-estado fs-6">{{ badge[0] }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1 small">Empleado</p>
+                        <p class="fw-bold">
+                            {% if current_user.is_admin %}
+                            <a href="{{ url_for('employees.detail', id=document.employee.id) }}" class="text-decoration-none">
+                                <i class="bi bi-person me-1"></i> {{ document.employee.nombre_completo }}
+                            </a>
+                            {% else %}
+                            <i class="bi bi-person me-1"></i> {{ document.employee.nombre_completo }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1 small">Tipo de Documento</p>
+                        <p class="fw-bold">
+                            <i class="bi bi-tag me-1"></i> {{ document.document_type.nombre if document.document_type else 'N/A' }}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="text-muted mb-1 small">Fecha de Emisión</p>
+                        <p class="fw-bold">{{ document.fecha_emision|fecha }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="text-muted mb-1 small">Fecha de Caducidad</p>
+                        <p class="fw-bold {% if document.estado == 'caducado' %}text-danger{% elif document.estado == 'por_vencer' %}text-warning{% endif %}">
+                            {{ document.fecha_caducidad|fecha if document.fecha_caducidad else 'Sin caducidad' }}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="text-muted mb-1 small">Días Restantes</p>
+                        {% if document.dias_restantes is not none %}
+                            {% if document.dias_restantes < 0 %}
+                            <p class="fw-bold text-danger">
+                                <i class="bi bi-exclamation-triangle me-1"></i> Caducado hace {{ document.dias_restantes|abs }} día(s)
+                            </p>
+                            {% elif document.dias_restantes == 0 %}
+                            <p class="fw-bold text-danger">
+                                <i class="bi bi-exclamation-triangle me-1"></i> ¡Caduca hoy!
+                            </p>
+                            {% elif document.dias_restantes <= 30 %}
+                            <p class="fw-bold text-warning">
+                                <i class="bi bi-clock me-1"></i> {{ document.dias_restantes }} día(s)
+                            </p>
+                            {% else %}
+                            <p class="fw-bold text-success">
+                                <i class="bi bi-check-circle me-1"></i> {{ document.dias_restantes }} día(s)
+                            </p>
+                            {% endif %}
+                        {% else %}
+                        <p class="text-muted">No aplica</p>
+                        {% endif %}
+                    </div>
+
+                    {% if document.notas %}
+                    <div class="col-12">
+                        <p class="text-muted mb-1 small">Notas</p>
+                        <p>{{ document.notas }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1 small">Subido por</p>
+                        <p>{{ document.uploader.nombre or document.uploader.username if document.uploader else 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1 small">Fecha de registro</p>
+                        <p>{{ document.created_at|fecha_hora }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Archivo adjunto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-paperclip me-2"></i> Archivo Adjunto
+            </div>
+            <div class="card-body text-center">
+                {% if document.archivo_path %}
+                <div class="mb-3">
+                    {% set ext = document.archivo_nombre.rsplit('.', 1)[-1].lower() if document.archivo_nombre else '' %}
+                    {% if ext == 'pdf' %}
+                    <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 3rem;"></i>
+                    {% elif ext in ['jpg', 'jpeg', 'png'] %}
+                    <i class="bi bi-file-earmark-image text-primary" style="font-size: 3rem;"></i>
+                    {% elif ext in ['doc', 'docx'] %}
+                    <i class="bi bi-file-earmark-word text-primary" style="font-size: 3rem;"></i>
+                    {% elif ext in ['xls', 'xlsx'] %}
+                    <i class="bi bi-file-earmark-excel text-success" style="font-size: 3rem;"></i>
+                    {% else %}
+                    <i class="bi bi-file-earmark text-secondary" style="font-size: 3rem;"></i>
+                    {% endif %}
+                </div>
+                <p class="mb-2"><small>{{ document.archivo_nombre }}</small></p>
+                <a href="{{ url_for('documents.download', id=document.id) }}" class="btn btn-success">
+                    <i class="bi bi-download me-2"></i> Descargar
+                </a>
+                {% else %}
+                <div class="py-3">
+                    <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">Sin archivo adjunto</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        {% if current_user.is_admin %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-gear me-2"></i> Acciones
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('documents.edit', id=document.id) }}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-2"></i> Editar Documento
+                    </a>
+                    <form method="POST" action="{{ url_for('documents.delete', id=document.id) }}"
+                          onsubmit="return confirm('¿Estás seguro de eliminar este documento?')">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-2"></i> Eliminar Documento
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('documents.list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i> Volver a Documentos
+    </a>
+</div>
+{% endblock %}
+

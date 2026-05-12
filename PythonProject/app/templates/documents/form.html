@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if document else 'Nuevo' }} Documento - Gestión PRL{% endblock %}
+{% block page_title %}
+    <i class="bi bi-{{ 'pencil' if document else 'cloud-upload' }} me-2"></i>
+    {{ 'Editar Documento' if document else 'Subir Documento' }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="employee_id" class="form-label">Empleado <span class="text-danger">*</span></label>
+                            <select class="form-select" id="employee_id" name="employee_id" required>
+                                <option value="">Seleccionar empleado...</option>
+                                {% for emp in empleados %}
+                                <option value="{{ emp.id }}"
+                                    {% if document and document.employee_id == emp.id %}selected
+                                    {% elif employee_preselect == emp.id|string %}selected{% endif %}>
+                                    {{ emp.nombre_completo }} ({{ emp.dni }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="document_type_id" class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="document_type_id" name="document_type_id" required>
+                                <option value="">Seleccionar tipo...</option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo.id }}" data-validez="{{ tipo.validez_meses or '' }}"
+                                    {% if document and document.document_type_id == tipo.id %}selected{% endif %}>
+                                    {{ tipo.nombre }}
+                                    {% if tipo.validez_meses %}({{ tipo.validez_meses }} meses){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="titulo" class="form-label">Título del Documento <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="titulo" name="titulo"
+                                   value="{{ document.titulo if document else '' }}"
+                                   placeholder="Ej: Reconocimiento médico anual 2025" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fecha_emision" class="form-label">Fecha de Emisión <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_emision" name="fecha_emision"
+                                   value="{{ document.fecha_emision.isoformat() if document and document.fecha_emision else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fecha_caducidad" class="form-label">Fecha de Caducidad</label>
+                            <input type="date" class="form-control" id="fecha_caducidad" name="fecha_caducidad"
+                                   value="{{ document.fecha_caducidad.isoformat() if document and document.fecha_caducidad else '' }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            {% if not document %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="calcular_caducidad" name="calcular_caducidad" checked>
+                                <label class="form-check-label" for="calcular_caducidad">
+                                    Calcular automáticamente según tipo
+                                </label>
+                            </div>
+                            {% else %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sin_caducidad" name="sin_caducidad">
+                                <label class="form-check-label" for="sin_caducidad">
+                                    Sin fecha de caducidad
+                                </label>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="archivo" class="form-label">
+                                <i class="bi bi-paperclip me-1"></i>
+                                {{ 'Cambiar archivo' if document and document.archivo_path else 'Adjuntar archivo' }}
+                            </label>
+                            <input type="file" class="form-control" id="archivo" name="archivo"
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                            <small class="form-text text-muted">
+                                Formatos permitidos: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (máx. 16 MB)
+                            </small>
+                            {% if document and document.archivo_path %}
+                            <div class="mt-2">
+                                <span class="badge bg-info">
+                                    <i class="bi bi-file-earmark me-1"></i> Archivo actual: {{ document.archivo_nombre }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="notas" class="form-label">Notas / Observaciones</label>
+                            <textarea class="form-control" id="notas" name="notas" rows="3"
+                                      placeholder="Observaciones adicionales...">{{ document.notas if document else '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('documents.list') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>
+                            {{ 'Actualizar' if document else 'Subir Documento' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-calcular fecha de caducidad cuando se selecciona tipo y fecha de emisión
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.getElementById('document_type_id');
+    const fechaEmision = document.getElementById('fecha_emision');
+    const fechaCaducidad = document.getElementById('fecha_caducidad');
+    const calcularCheck = document.getElementById('calcular_caducidad');
+
+    function calcularFecha() {
+        if (!calcularCheck || !calcularCheck.checked) return;
+        const option = tipoSelect.options[tipoSelect.selectedIndex];
+        const validez = option.getAttribute('data-validez');
+        if (validez && fechaEmision.value) {
+            const fecha = new Date(fechaEmision.value);
+            fecha.setMonth(fecha.getMonth() + parseInt(validez));
+            fechaCaducidad.value = fecha.toISOString().split('T')[0];
+        }
+    }
+
+    if (tipoSelect) tipoSelect.addEventListener('change', calcularFecha);
+    if (fechaEmision) fechaEmision.addEventListener('change', calcularFecha);
+});
+</script>
+{% endblock %}
+
