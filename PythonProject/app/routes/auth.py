@@ -11,11 +11,36 @@ from urllib.parse import urlparse
 
 auth_bp = Blueprint('auth', __name__)
 
+LOGIN_2FA_TTL_SEC = 300
+
+
+def _clear_login_2fa_session():
+    session.pop('login_2fa_user_id', None)
+    session.pop('login_2fa_code', None)
+    session.pop('login_2fa_ts', None)
+
+
+def _send_login_2fa_code(user):
+    code = str(random.randint(100000, 999999))
+    session['login_2fa_user_id'] = user.id
+    session['login_2fa_code'] = code
+    session['login_2fa_ts'] = int(time.time())
+
+    msg = Message("Codigo de acceso - Gestion PRL", recipients=[user.email])
+    msg.body = (
+        "Hola,\n\n"
+        f"Tu codigo de acceso para iniciar sesion es: {code}\n\n"
+        "Este codigo caduca en 5 minutos. Si no has solicitado este acceso, ignoralo."
+    )
+    mail.send(msg)
+
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
+
+    _clear_login_2fa_session()
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -24,16 +49,26 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password) and user.is_admin:
-            login_user(user, remember=False)
-            session.permanent = False  # El servidor no fuerza guardar sesión en disco
-            # Truco para asegurar cierres incluso con navegadores que restauran pestañas:
-            session.modified = True
-            session['sid'] = uuid.uuid4().hex
-            session['nav_target'] = url_for('dashboard.index')
-            session['nav_ts'] = int(time.time())
-            next_page = request.args.get('next')
-            flash('Sesion iniciada correctamente.', 'success')
-            return redirect(next_page or url_for('dashboard.index'))
+            if user.username == 'admin':
+                login_user(user, remember=False)
+                session.permanent = False
+                session.modified = True
+                session['sid'] = uuid.uuid4().hex
+                session['nav_target'] = url_for('dashboard.index')
+                session['nav_ts'] = int(time.time())
+                flash('Sesion iniciada correctamente.', 'success')
+                return redirect(url_for('dashboard.index'))
+            if not user.email:
+                flash('Tu cuenta no tiene correo asignado. Contacta con soporte.', 'danger')
+                return render_template('auth/login.html')
+            try:
+                _send_login_2fa_code(user)
+                flash(f'Hemos enviado un codigo de acceso a tu correo ({user.email}).', 'info')
+                return redirect(url_for('auth.login_verify'))
+            except Exception as e:
+                _clear_login_2fa_session()
+                flash(f'Error al enviar el correo. Por favor contacta con soporte. ({str(e)})', 'danger')
+                return render_template('auth/login.html')
         else:
             if user and not user.is_admin:
                 current_app.logger.warning('Intento de login no admin usuario=%s ip=%s', username, request.remote_addr)
@@ -43,6 +78,78 @@ def login():
                 flash('Usuario o contrasena incorrectos.', 'danger')
 
     return render_template('auth/login.html')
+
+
+@auth_bp.route('/login/verify', methods=['GET', 'POST'])
+def login_verify():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard.index'))
+
+    user_id = session.get('login_2fa_user_id')
+    code = session.get('login_2fa_code')
+    ts = session.get('login_2fa_ts')
+
+    if not user_id or not code or not ts:
+        flash('No hay ningun inicio de sesion en proceso.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    now_ts = int(time.time())
+    if now_ts - int(ts) > LOGIN_2FA_TTL_SEC:
+        _clear_login_2fa_session()
+        flash('El codigo ha caducado. Inicia sesion de nuevo.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        code_input = request.form.get('code', '').strip()
+        if int(time.time()) - int(ts) > LOGIN_2FA_TTL_SEC:
+            _clear_login_2fa_session()
+            flash('El codigo ha caducado. Inicia sesion de nuevo.', 'warning')
+            return redirect(url_for('auth.login'))
+        if code_input != code:
+            flash('Codigo incorrecto. Intentalo de nuevo.', 'danger')
+            return render_template('auth/login_verify.html', expires_at=int(ts) + LOGIN_2FA_TTL_SEC)
+
+        user = User.query.get(user_id)
+        if not user or not user.is_admin:
+            _clear_login_2fa_session()
+            flash('No se pudo validar la cuenta. Inicia sesion de nuevo.', 'danger')
+            return redirect(url_for('auth.login'))
+
+        login_user(user, remember=False)
+        session.permanent = False
+        session.modified = True
+        session['sid'] = uuid.uuid4().hex
+        session['nav_target'] = url_for('dashboard.index')
+        session['nav_ts'] = int(time.time())
+        _clear_login_2fa_session()
+        flash('Sesion iniciada correctamente.', 'success')
+        return redirect(url_for('dashboard.index'))
+
+    return render_template('auth/login_verify.html', expires_at=int(ts) + LOGIN_2FA_TTL_SEC)
+
+
+@auth_bp.route('/login/resend', methods=['POST'])
+def login_resend_code():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard.index'))
+
+    user_id = session.get('login_2fa_user_id')
+    if not user_id:
+        flash('No hay ningun inicio de sesion en proceso.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(user_id)
+    if not user or not user.is_admin or not user.email:
+        _clear_login_2fa_session()
+        flash('No se pudo reenviar el codigo. Inicia sesion de nuevo.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    try:
+        _send_login_2fa_code(user)
+        flash(f'Nuevo codigo enviado a {user.email}.', 'info')
+    except Exception as e:
+        flash(f'Error al reenviar el correo. ({str(e)})', 'danger')
+    return redirect(url_for('auth.login_verify'))
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -213,6 +320,24 @@ def perfil():
         return redirect(url_for('auth.perfil'))
 
     return render_template('auth/perfil.html')
+
+
+@auth_bp.route('/perfil/delete', methods=['POST'])
+@login_required
+def delete_profile():
+    user_id = current_user.id
+    try:
+        logout_user()
+        session.clear()
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+        flash('Cuenta eliminada correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'No se pudo eliminar la cuenta. ({str(e)})', 'danger')
+    return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/nav', methods=['POST'])

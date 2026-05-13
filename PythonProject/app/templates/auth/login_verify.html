@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Acceso - Gestion PRL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #1a237e, #0d47a1); border: none; padding: 12px; }
+        .code-input {
+            font-size: 2.5rem;
+            letter-spacing: 0.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h3 class="text-center"><i class="bi bi-shield-lock-fill text-primary"></i> <br>Verifica tu Acceso</h3>
+        <p class="text-center text-muted mb-2">Introduce el codigo temporal de 6 digitos enviado a tu correo. Tienes 5 minutos para usarlo.</p>
+        <p class="text-center text-muted mb-4">
+            <span class="badge bg-light text-dark" id="countdown" data-expires="{{ expires_at }}"></span>
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-4 text-center">
+                <input type="text" class="form-control form-control-lg code-input" id="code" name="code" required autofocus maxlength="6" pattern="\d{6}" placeholder="000000">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mb-3"><i class="bi bi-check2-circle"></i> Verificar y Entrar</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('auth.login_resend_code') }}" class="d-grid mb-3">
+            <button type="submit" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-repeat"></i> Reenviar codigo
+            </button>
+        </form>
+
+        <div class="text-center">
+            <a href="{{ url_for('auth.login') }}" class="text-decoration-none">Volver al inicio</a>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const countdown = document.getElementById('countdown');
+            if (!countdown) return;
+            const expiresAt = parseInt(countdown.getAttribute('data-expires'), 10);
+            if (!expiresAt) return;
+
+            function render() {
+                const now = Math.floor(Date.now() / 1000);
+                let remaining = expiresAt - now;
+                if (remaining < 0) remaining = 0;
+                const minutes = Math.floor(remaining / 60);
+                const seconds = String(remaining % 60).padStart(2, '0');
+                countdown.textContent = 'Tiempo restante: ' + minutes + ':' + seconds;
+            }
+
+            render();
+            setInterval(render, 1000);
+        })();
+    </script>
+</body>
+</html>
+
